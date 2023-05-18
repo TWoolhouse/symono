@@ -1,0 +1,209 @@
+root = {
+    SOI ~ ws? ~ sym ~ ws? ~ EOI
+}
+
+sym = { mono ~ (ws? ~ mono)* }
+
+mono = {
+    newline
+  | collection
+  | numeric
+  | font
+  | arrow
+  | logic
+  | sets
+  | operator
+  | alphabetic
+}
+
+newline = { "\\n" }
+
+numeric = @{ ("-" | "+")? ~ NUMBER+ ~ ("." ~ NUMBER*)? }
+
+alphabetic = { ALPHABETIC+ }
+
+operator = {
+    op_arith_add
+  | op_arith_sub
+  | op_arith_mul_dot
+  | op_arith_mul_cross
+  | op_arith_mul
+  | op_arith_div
+  | op_ne_equiv
+  | op_ne_eq
+  | op_ne_ge
+  | op_ne_le
+  | op_ne_gt
+  | op_ne_lt
+  | op_ne_bar
+  | op_eq_equiv
+  | op_eq_eq
+  | op_eq_ge
+  | op_eq_le
+  | op_eq_gt
+  | op_eq_lt
+  | op_eq_colon
+  | op_eq_bar
+}
+
+op_arith_add       = { "+" }
+op_arith_sub       = { "-" }
+op_arith_mul       = { "*" }
+op_arith_div       = {
+    "./."
+  | "/" // Temporary til binary operator is fixed
+}
+op_arith_mul_dot   = { "*." }
+op_arith_mul_cross = { "*x" }
+
+op_eq_eq    = { "=" }
+op_eq_gt    = { ">" }
+op_eq_lt    = { "<" }
+op_eq_ge    = { ">=" }
+op_eq_le    = { "<=" }
+op_eq_equiv = { "==" ~ "="? }
+op_eq_colon = { ":=" }
+op_eq_bar   = { "|=" }
+
+op_ne_eq    = { "!=" }
+op_ne_gt    = { "!>" }
+op_ne_lt    = { "!<" }
+op_ne_ge    = { "!>=" | ">!=" }
+op_ne_le    = { "!<=" | "<!=" }
+op_ne_equiv = { "!==" ~ "="? }
+op_ne_bar   = { "|!=" }
+
+arrow = {
+    arr_up
+  | arr_down
+  | arr_long_double
+  | arr_long_left
+  | arr_long_right
+  | arr_double
+  | arr_left
+  | arr_right
+  | arr_thick_long_double
+  | arr_thick_long_left
+  | arr_thick_long_right
+  | arr_thick_double
+  | arr_thick_left
+  | arr_thick_right
+  | arr_ne
+  | arr_se
+  | arr_nw
+  | arr_sw
+}
+
+arr_right       = { "->" }
+arr_left        = { "<-" }
+arr_up          = { "-^" }
+arr_down        = { ^"-v" }
+arr_long_right  = { "-->" }
+arr_long_left   = { "<--" }
+arr_double      = { "<->" }
+arr_long_double = { "<-->" }
+arr_thick_right = { "=>" }
+// FIXME: Collides with op_eq_le
+arr_thick_left        = { "<=" }
+arr_thick_long_right  = { "==>" }
+arr_thick_long_left   = { "<==" }
+arr_thick_double      = { "<=>" }
+arr_thick_long_double = { "<==>" }
+// Diagonal
+arr_ne = { "-/>" }
+arr_nw = { "<\\-" }
+arr_se = { "-\\>" }
+arr_sw = { "</-" }
+
+logic = {
+    logic_and
+  | logic_or
+  | logic_and
+}
+
+logic_and = { "&&" }
+logic_or  = { "&|" | "||" }
+logic_not = { "&!" | "¬" }
+
+sets = {
+    set_subsetne
+  | set_subseteq
+  | set_subset
+  | set_union
+  | set_intersection
+  | set_complement
+  | set_empty
+  | set_minus
+  | set_in
+}
+
+set_union        = { "{|" }
+set_intersection = { "{&" }
+set_complement   = { "{!" ~ ws? ~ mono }
+set_minus        = { "{-" }
+set_empty        = { "{0" }
+set_in           = { "in" | "{" ~ ("i" | "c") }
+set_subset       = { "{<" }
+set_subseteq     = { "{<=" }
+set_subsetne     = { "{<!=" | "{!<=" }
+
+collection       =  {
+    col_tup
+  | col_set
+  | col_vec
+}
+collection_delim = _{ ws? ~ "," ~ ws? | ws }
+collection_sym   = _{
+    ws? ~ mono ~ (collection_delim ~ mono)* ~ ws?
+}
+
+col_set = { "{" ~ collection_sym ~ "}" }
+col_tup = { "(" ~ collection_sym ~ ")" }
+col_vec = { "[" ~ collection_sym ~ "]" ~ col_vec_ext }
+
+empty             = { "" }
+col_vec_ext       = { col_vec_transpose | empty }
+col_vec_transpose = { "T" }
+
+// FIXME: Left-Recursion
+operator_bin = {
+    "/"
+}
+
+font = { (font_prefix_greek? ~ font_delim ~ font_greek) | (("|" ~ font_numcls) | (font_prefix_numcls ~ font_delim ~ font_numcls)) }
+
+font_delim         = _{ "@" }
+font_prefix_greek  = _{ "g" }
+font_prefix_numcls = _{ "n" }
+
+font_greek = {
+    // Remove redundant, add single letters, order properly
+    (("A" | "a") ~ "lpha")
+  | (("U" | "u") ~ "psilon")
+  | (("E" | "e") ~ "psilon")
+  | (("L" | "l") ~ "ambda")
+  | (("G" | "g") ~ "amma")
+  | (("D" | "d") ~ "elta")
+  | (("T" | "t") ~ "heta")
+  | (("K" | "k") ~ "appa")
+  | (("S" | "s") ~ "igma")
+  | (("B" | "b") ~ "eta")
+  | (("Z" | "z") ~ "eta")
+  | (("I" | "i") ~ "ota")
+  | (("O" | "o") ~ "mega")
+  | (("E" | "e") ~ "ta")
+  | (("R" | "r") ~ "ho")
+  | (("T" | "t") ~ "au")
+  | (("P" | "p") ~ "hi")
+  | (("C" | "c") ~ "hi")
+  | (("P" | "p") ~ "si")
+  | (("M" | "m") ~ "u")
+  | (("N" | "n") ~ "u")
+  | (("X" | "x") ~ "i")
+  | (("P" | "p") ~ "i")
+  | (("O" | "o") ~ "")
+}
+
+font_numcls = { 'A'..'Z' }
+
+ws = _{ WHITE_SPACE+ }
