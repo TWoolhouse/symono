@@ -20,7 +20,11 @@ mod transpile {
                 .map(|sym| sym.latex()),
         }
         .map(|str| {
-            print!("{}", str);
+            if command.get_flag("wrap") {
+                print!("${}$", str);
+            } else {
+                print!("{}", str);
+            }
         })
     }
 
@@ -37,13 +41,21 @@ fn cli() -> clap::Command {
             Arg::new("lang")
                 .required(true)
                 .action(ArgAction::Set)
-                .value_parser(value_parser!(transpile::Language)),
+                .value_parser(value_parser!(transpile::Language))
+                .help("Output language"),
         )
         .arg(
             Arg::new("ifile")
                 .required(true)
                 .action(ArgAction::Set)
-                .value_parser(value_parser!(PathBuf)),
+                .value_parser(value_parser!(PathBuf))
+                .help("Input symono file to parse"),
+        )
+        .arg(
+            Arg::new("wrap")
+                .long("wrap")
+                .action(ArgAction::SetTrue)
+                .help("Wraps the output in the language standard deliminating block"),
         )
 }
 
