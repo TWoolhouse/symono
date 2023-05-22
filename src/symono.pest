@@ -13,14 +13,29 @@ mono = {
   | logic
   | sets
   | operator
-  | alphabetic
+  | dot
+  | raw
 }
 
 newline = { "\\n" }
 
 numeric = @{ ("-" | "+")? ~ NUMBER+ ~ ("." ~ NUMBER*)? }
 
-alphabetic = { ALPHABETIC+ }
+raw         = { alphabetic | punctuation }
+alphabetic  = { ALPHABETIC+ }
+punctuation = {
+    ","
+}
+
+dot = {
+    dot_triple
+  | dot_compose
+  | dot_centre
+}
+
+dot_centre  = { "." }
+dot_triple  = { "..." }
+dot_compose = { ".o" }
 
 operator = {
     op_arith_add
@@ -147,19 +162,22 @@ set_subset       = { "{<" }
 set_subseteq     = { "{<=" }
 set_subsetne     = { "{<!=" | "{!<=" }
 
-collection       =  {
+collection       = {
     col_tup
   | col_set
   | col_vec
 }
-collection_delim = _{ ws? ~ "," ~ ws? | ws }
-collection_sym   = _{
-    ws? ~ mono ~ (collection_delim ~ mono)* ~ ws?
+collection_delim = { ws? ~ delim ~ ws? | ws }
+delim            = { "," }
+
+collection_sym = _{
+    // ws? ~ mono ~ (collection_delim ~ mono)* ~ ws?
+    ws? ~ mono ~ (PUSH(collection_delim) ~ mono ~ (PEEK ~ mono)* ~ DROP)? ~ ws?
 }
 
-col_set = { "{" ~ collection_sym ~ "}" }
-col_tup = { "(" ~ collection_sym ~ ")" }
-col_vec = { "[" ~ collection_sym ~ "]" ~ col_vec_ext }
+col_set = { "{" ~ collection_sym? ~ "}" }
+col_tup = { "(" ~ collection_sym? ~ ")" }
+col_vec = { "[" ~ collection_sym? ~ "]" ~ col_vec_ext }
 
 empty             = { "" }
 col_vec_ext       = { col_vec_transpose | empty }

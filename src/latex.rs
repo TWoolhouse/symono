@@ -3,7 +3,7 @@ pub fn mono(node: Node) -> String {
     let node = node.into_child();
     match node.as_rule() {
         Rule::numeric => node.as_str().to_owned(),
-        Rule::alphabetic => node.as_str().to_owned(),
+        Rule::raw => node.as_str().to_owned(),
         Rule::font => {
             let font = node.into_child();
             match font.as_rule() {
@@ -38,6 +38,13 @@ pub fn mono(node: Node) -> String {
             Rule::op_ne_equiv => "\\not\\equiv",
             Rule::op_ne_bar => "\\nvDash",
             rule => unreachable!("Expect only Operators: {:?}", rule),
+        }
+        .to_owned(),
+        Rule::dot => match node.into_child().as_rule() {
+            Rule::dot_centre => "\\cdot",
+            Rule::dot_triple => "\\ldots",
+            Rule::dot_compose => "\\circ",
+            rule => unreachable!("Expect only Dots: {:?}", rule),
         }
         .to_owned(),
         Rule::arrow => match node.into_child().as_rule() {
@@ -90,6 +97,46 @@ pub fn mono(node: Node) -> String {
                     "\\set{{ {} }}",
                     collection.into_inner().map(mono).join(", ")
                 ),
+                Rule::col_tup => {
+                    let inner = collection.into_inner().collect_vec();
+                    let delim = format!(
+                        " {} ",
+                        if inner.len() > 1 {
+                            let delim = inner[1].clone().into_inner().next();
+                            delim.map_or(" ", |delim| delim.as_str())
+                        } else {
+                            "".into()
+                        }
+                    );
+                    format!(
+                        "( {} )",
+                        inner
+                            .into_iter()
+                            .filter_map(|m| match m.as_rule() {
+                                Rule::collection_delim => None,
+                                _ => Some(mono(m)),
+                            })
+                            .join(&delim)
+                    )
+                }
+                Rule::col_vec => {
+                    let inner = collection.into_inner().collect_vec();
+                    let (ext, monos) = inner
+                        .split_last()
+                        .expect("Vector must have an extension even if it is empty");
+                    let delim = format!(
+                        " {} ",
+                        match ext.clone().into_child().as_rule() {
+                            Rule::empty => "&",
+                            Rule::col_vec_transpose => "\\\\",
+                            rule => unreachable!("Expect only Vector Extensions: {:?}", rule),
+                        }
+                    );
+                    format!(
+                        "\\begin{{bmatrix}} {} \\end{{bmatrix}}",
+                        monos.into_iter().map(|m| mono(m.clone())).join(&delim)
+                    )
+                }
                 rule => unreachable!("Expect only Collections: {:?}", rule),
             }
         }
