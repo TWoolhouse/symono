@@ -7,12 +7,18 @@ mod parser {
     pub struct SymonoParser;
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("Parsing Error: {0}")]
+    Parse(#[from] pest::error::Error<Rule>),
+}
+
 pub use parser::Rule;
 
 type Node<'i> = Pair<'i, parser::Rule>;
 type Sequence<'i> = Pairs<'i, parser::Rule>;
 
-pub fn parse(input: &str) -> Result<Sequence, pest::error::Error<Rule>> {
+pub fn parse(input: &str) -> Result<Sequence, Error> {
     use pest::Parser;
     Ok(parser::SymonoParser::parse(Rule::root, input)?
         .next()

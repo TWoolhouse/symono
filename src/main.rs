@@ -64,5 +64,5 @@ pub enum Error {
     #[error("I/O Error: {0}")]
     IO(#[from] std::io::Error),
     #[error("Input can not be parsed: {0}")]
-    Parse(#[from] pest::error::Error<symono::Rule>),
+    Symono(#[from] symono::Error),
 }
