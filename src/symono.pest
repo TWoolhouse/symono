@@ -9,9 +9,9 @@ mono = {
   | collection
   | numeric
   | font
-  | arrow
   | logic
   | sets
+  | arrow
   | operator
   | dot
   | raw
@@ -19,7 +19,7 @@ mono = {
 
 newline = { "\\n" }
 
-numeric = @{ ("-" | "+")? ~ NUMBER+ ~ ("." ~ NUMBER*)? }
+numeric = @{ ("-" | "+")? ~ NUMBER+ ~ ("." ~ NUMBER+)? }
 
 raw         = { alphabetic | punctuation }
 alphabetic  = { ALPHABETIC+ }
@@ -134,6 +134,7 @@ logic = {
     logic_and
   | logic_or
   | logic_and
+  | logic_not
 }
 
 logic_and = { "&&" }
@@ -188,7 +189,10 @@ operator_bin = {
     "/"
 }
 
-font = { (font_prefix_greek? ~ font_delim ~ font_greek) | (("|" ~ font_numcls) | (font_prefix_numcls ~ font_delim ~ font_numcls)) }
+font = {
+    (font_prefix_greek? ~ font_delim ~ font_greek)
+  | (("|" ~ font_numcls) | (font_prefix_numcls ~ font_delim ~ font_numcls))
+}
 
 font_delim         = _{ "@" }
 font_prefix_greek  = _{ "g" }
@@ -196,30 +200,33 @@ font_prefix_numcls = _{ "n" }
 
 font_greek = {
     // Remove redundant, add single letters, order properly
-    (("A" | "a") ~ "lpha")
-  | (("U" | "u") ~ "psilon")
-  | (("E" | "e") ~ "psilon")
-  | (("L" | "l") ~ "ambda")
-  | (("G" | "g") ~ "amma")
-  | (("D" | "d") ~ "elta")
-  | (("T" | "t") ~ "heta")
-  | (("K" | "k") ~ "appa")
-  | (("S" | "s") ~ "igma")
-  | (("B" | "b") ~ "eta")
-  | (("Z" | "z") ~ "eta")
-  | (("I" | "i") ~ "ota")
-  | (("O" | "o") ~ "mega")
-  | (("E" | "e") ~ "ta")
-  | (("R" | "r") ~ "ho")
-  | (("T" | "t") ~ "au")
-  | (("P" | "p") ~ "hi")
-  | (("C" | "c") ~ "hi")
-  | (("P" | "p") ~ "si")
-  | (("M" | "m") ~ "u")
-  | (("N" | "n") ~ "u")
-  | (("X" | "x") ~ "i")
-  | (("P" | "p") ~ "i")
-  | (("O" | "o") ~ "")
+    (^"A") ~ "lpha"
+  | (^"B") ~ "eta"
+  | (^"G") ~ "amma"
+  | (^"D") ~ "elta"
+  | (^"E") ~ "psilon"
+  | (^"Z") ~ "eta"
+  | (^"E") ~ "ta"
+  | (^"T") ~ "heta"
+  | (^"I") ~ "ota"
+  | (^"K") ~ "appa"
+  | (^"L") ~ "ambda"
+  | (^"M") ~ "u"
+  | (^"N") ~ "u"
+  | (^"O") ~ "micron"
+  | (^"P") ~ "i"
+  | (^"R") ~ "ho"
+  | (^"S") ~ "igma"
+  | (^"T") ~ "au"
+  | (^"U") ~ "psilon"
+  | (^"P") ~ "hi"
+  | (^"C") ~ "hi"
+  | (^"P") ~ "si"
+  | (^"O") ~ "mega"
+  | "vepsilon"
+  | "vrho"
+  | "vtheta"
+  | "vphi"
 }
 
 font_numcls = { 'A'..'Z' }
