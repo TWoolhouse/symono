@@ -6,25 +6,33 @@ sym = { mono ~ (ws? ~ mono)* }
 
 mono = {
     newline
+  | tab
+  | group
+  | command
   | collection
-  | numeric
+  | text
   | font
   | logic
   | sets
   | arrow
+  | numeric
   | operator
   | dot
-  | raw
+  | alphabetic
+  | punctuation
 }
 
 newline = { "\\n" }
+tab     = { "\\t" }
+
+group = { "((" ~ ws? ~ sym ~ ws? ~ "))" }
 
 numeric = @{ ("-" | "+")? ~ NUMBER+ ~ ("." ~ NUMBER+)? }
 
-raw         = { alphabetic | punctuation }
 alphabetic  = { ALPHABETIC+ }
 punctuation = {
     ","
+  | "!"
 }
 
 dot = {
@@ -100,8 +108,8 @@ arrow = {
   | arr_thick_long_double
   | arr_thick_long_left
   | arr_thick_long_right
-  | arr_thick_double
-  | arr_thick_left
+  | arr_thick_double // | arr_thick_left
+
   | arr_thick_right
   | arr_ne
   | arr_se
@@ -163,17 +171,19 @@ set_subset       = { "{<" }
 set_subseteq     = { "{<=" }
 set_subsetne     = { "{<!=" | "{!<=" }
 
-collection       = {
+text      = { PUSH("#"*) ~ "\"" ~ text_expr ~ "\"" ~ POP }
+text_expr = { (!("\"" ~ PEEK) ~ ANY)* }
+
+collection = {
     col_tup
   | col_set
   | col_vec
 }
-collection_delim = { ws? ~ delim ~ ws? | ws }
-delim            = { "," }
+delim      = { "," | "" }
 
 collection_sym = _{
     // ws? ~ mono ~ (collection_delim ~ mono)* ~ ws?
-    ws? ~ mono ~ (PUSH(collection_delim) ~ mono ~ (PEEK ~ mono)* ~ DROP)? ~ ws?
+    ws? ~ mono ~ (ws? ~ PUSH(delim) ~ ws? ~ mono ~ (ws? ~ PEEK ~ ws? ~ mono)* ~ DROP)? ~ ws?
 }
 
 col_set = { "{" ~ collection_sym? ~ "}" }
@@ -184,6 +194,14 @@ empty             = { "" }
 col_vec_ext       = { col_vec_transpose | empty }
 col_vec_transpose = { "T" }
 
+command = {
+    cmd_cases
+}
+
+cmd_cases      =  { "{" ~ (ws? ~ cmd_cases_kw ~ cmd_cases_expr)+ ~ ws? ~ "}" }
+cmd_cases_kw   = _{ "case!" }
+cmd_cases_expr =  { (ws? ~ !("case!") ~ mono)* }
+
 // FIXME: Left-Recursion
 operator_bin = {
     "/"
@@ -191,6 +209,7 @@ operator_bin = {
 
 font = {
     (font_prefix_greek? ~ font_delim ~ font_greek)
+  | ((font_prefix_greek ~ font_delim)? ~ font_greek)
   | (("|" ~ font_numcls) | (font_prefix_numcls ~ font_delim ~ font_numcls))
 }
 

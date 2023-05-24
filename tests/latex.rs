@@ -83,8 +83,7 @@ mod single {
         assert_eq!(mono(">"), r"\gt", "greater than");
         assert_eq!(mono("<"), r"\lt", "less than");
         assert_eq!(mono(">="), r"\ge", "greater than or equal to");
-        // FIXME: See collisions: arith_le_vs_arrow_left_thick
-        // assert_eq!(mono("<=").unwrap(), r"\le", "less than or equal to");
+        assert_eq!(mono("<="), r"\le", "less than or equal to");
         assert_eq!(mono("=="), r"\equiv", "equivalence");
         assert_eq!(mono("==="), r"\equiv", "long equivalence");
         assert_eq!(mono(":="), r"\coloneqq", "colon equals");
@@ -111,11 +110,12 @@ mod single {
         assert_eq!(mono("-v"), r"\downarrow", "down");
         assert_eq!(mono("-V"), r"\downarrow", "down");
 
-        // assert_eq!(mono("<-").unwrap(), r"\leftarrow", "left");
+        assert_eq!(mono("<-"), r"\leftarrow", "left");
         assert_eq!(mono("->"), r"\rightarrow", "right");
         assert_eq!(mono("<->"), r"\leftrightarrow", "double");
 
-        assert_eq!(mono("<="), r"\Leftarrow", "left thick");
+        // FIXME: See collisions: arith_le_vs_arrow_left_thick
+        // assert_eq!(mono("<="), r"\Leftarrow", "left thick");
         assert_eq!(mono("=>"), r"\Rightarrow", "right thick");
         assert_eq!(mono("<=>"), r"\Leftrightarrow", "double thick");
 
@@ -170,8 +170,15 @@ mod collection {
     use super::parse::*;
 
     #[test]
+    fn group() {
+        assert_eq!(mono("((1))"), mono("1"));
+        assert_eq!(mono("((1 <= 3))"), mono("1 <= 3"));
+        assert_eq!(mono("(( 1 <= 3 ))"), mono("1 <= 3"));
+    }
+
+    #[test]
     fn generic() {
-        assert_eq!(mono("(1 @alpha 3)"), r"( 1   \alpha   3 )");
+        assert_eq!(mono("(1 @alpha 3)"), r"( 1 \alpha 3 )");
         assert_eq!(mono("(1, @alpha, 3)"), r"( 1 , \alpha , 3 )");
         assert_eq!(mono("(1 , @alpha , 3)"), r"( 1 , \alpha , 3 )");
     }
@@ -190,7 +197,19 @@ mod collection {
     fn vector() {
         assert_eq!(
             mono("[1, @alpha, 3]"),
-            r"\begin{bmatrix} 1  , & \alpha  , & 3 \end{bmatrix}"
+            r"\begin{bmatrix} 1 ,& \alpha ,& 3 \end{bmatrix}"
+        );
+        assert_eq!(
+            mono("[1 @alpha 3]"),
+            r"\begin{bmatrix} 1 & \alpha & 3 \end{bmatrix}"
+        );
+        assert_eq!(
+            mono("[1 @alpha 3]T"),
+            r"\begin{bmatrix} 1 \\ \alpha \\ 3 \end{bmatrix}"
+        );
+        assert_eq!(
+            mono("[1, @alpha, 3]T"),
+            r"\begin{bmatrix} 1 \\ \alpha \\ 3 \end{bmatrix}"
         );
     }
 }
@@ -199,13 +218,22 @@ mod command {
     use super::parse::*;
 
     #[test]
-    #[should_panic]
     fn cases() {
         assert_eq!(
-            mono(r#"{case! f(x) \t x >= 0 case! g(x) \t "otherwise"}"#),
-            r"\begin{cases} f ( x ) & x \ge 0 \\ g(x) & \text{otherwise} \end{cases}"
-        );
+            mono(
+                r#"Gamma(sigma) = {
+				case! f(x) \t x > 0
+				case! g(x) \t "otherwise"
+			}"#
+            ),
+            r"\Gamma ( \sigma ) = \begin{cases} f ( x ) & x \gt 0 \\ g ( x ) & \text{otherwise} \end{cases}"
+        )
     }
+
+	#[test]
+	fn sum() {
+		
+	}
 }
 
 mod font {
@@ -268,7 +296,7 @@ mod font {
             ("vtheta", r"\vartheta"),
             ("vphi", r"\varphi"),
         ];
-        for delim in ["g@", "@"] {
+        for delim in ["g@", "@", ""] {
             let g = |name| format!("{}{}", delim, name);
 
             for (sym, ltx) in &mapping {

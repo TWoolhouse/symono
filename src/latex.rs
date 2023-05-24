@@ -2,8 +2,10 @@ use super::*;
 pub fn mono(node: Node) -> String {
     let node = node.into_child();
     match node.as_rule() {
+        Rule::tab => "&".to_owned(),
         Rule::numeric => node.as_str().to_owned(),
-        Rule::raw => node.as_str().to_owned(),
+        Rule::alphabetic => node.as_str().to_owned(),
+        Rule::punctuation => node.as_str().to_owned(),
         Rule::font => {
             let font = node.into_child();
             match font.as_rule() {
@@ -91,6 +93,13 @@ pub fn mono(node: Node) -> String {
                 rule => unreachable!("Expect only Logical Operator: {:?}", rule),
             }
         }
+        Rule::text => {
+            format!(r"\text{{{}}}", node.into_child().as_str())
+        }
+        Rule::group => {
+            let group = node.into_child();
+            group.into_inner().latex()
+        }
         Rule::collection => {
             let collection = node.into_child();
             match collection.as_rule() {
@@ -114,21 +123,31 @@ pub fn mono(node: Node) -> String {
                     let seq = collection_sequence(collection);
                     let (seq, ext) = collection_ext(&seq);
                     let (seq, delim) = collection_deliminator(seq);
-                    let delim = format!(
-                        " {}{} ",
-                        delim,
-                        match ext.clone().into_child().as_rule() {
-                            Rule::empty => "&",
-                            Rule::col_vec_transpose => r"\\",
-                            rule => unreachable!("Expect only Vector Extensions: {:?}", rule),
-                        }
-                    );
+                    let delim = match ext.clone().into_child().as_rule() {
+                        Rule::empty => format!(" {}{} ", delim.trim(), "&"),
+                        Rule::col_vec_transpose => r" \\ ".into(),
+                        rule => unreachable!("Expect only Vector Extensions: {:?}", rule),
+                    };
                     format!(
                         r"\begin{{bmatrix}} {} \end{{bmatrix}}",
                         seq.into_iter().map(|m| mono(m.clone())).join(&delim)
                     )
                 }
                 rule => unreachable!("Expect only Collections: {:?}", rule),
+            }
+        }
+        Rule::command => {
+            let cmd = node.into_child();
+            match cmd.as_rule() {
+                Rule::cmd_cases => {
+                    format!(
+                        r"\begin{{cases}} {} \end{{cases}}",
+                        cmd.into_inner()
+                            .map(|sym| sym.into_inner().latex())
+                            .join(r" \\ ")
+                    )
+                }
+                rule => unreachable!("Expect only Commands: {:?}", rule),
             }
         }
         rule => todo!("MONO ROOT: {:?}", rule),
@@ -173,18 +192,24 @@ fn collection_sequence(node: Node) -> Vec<Node> {
 }
 
 fn collection_deliminator<'a>(collection: &'a [Node]) -> (Vec<&'a Node<'a>>, String) {
-    let (seq, delim) = if let Some(node) = collection.get(1) {
-        let delim = node.clone().into_inner().next().map_or(" ", |n| n.as_str());
+    if let Some(node) = collection.get(1) {
+        let delim = node.clone().as_str();
         let seq = collection
             .iter()
             .take(1)
             .chain(collection.iter().skip(2))
             .collect_vec();
-        (seq, delim)
+        (
+            seq,
+            if delim == "" {
+                " ".into()
+            } else {
+                format!(" {} ", delim)
+            },
+        )
     } else {
-        (collection.iter().collect_vec(), "")
-    };
-    (seq, format!(" {delim} "))
+        (collection.iter().collect_vec(), " ".into())
+    }
 }
 
 fn collection_ext<'a>(collection: &'a [Node]) -> (&'a [Node<'a>], &'a Node<'a>) {
