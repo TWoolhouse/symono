@@ -1,6 +1,9 @@
 # Symono
 
+![Workflow - Rust](https://github.com/TWoolhouse/symono/actions/workflows/rust.yml/badge.svg)
+
 A custom maths markup language and parser.
+Try it out at: https://woolhouse.uk/symono/
 
 The langauge is meant to be simpler and more intuitive than [LaTeX](https://www.latex-project.org/) by making use of symbols rather than a command system.
 

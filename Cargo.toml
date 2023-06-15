@@ -6,8 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = { version = "4.2.7", features = ["cargo", "derive"] }
+clap = { version = "4.2.7", features = ["cargo", "derive"], optional = true }
 itertools = "0.10.5"
 pest = "2.6.0"
 pest_derive = "2.6.0"
 thiserror = "1.0.40"
+
+[features]
+cli = ["dep:clap"]
+default = ["cli"]
