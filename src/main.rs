@@ -3,7 +3,11 @@ use thiserror::Error;
 
 fn main() -> Result<(), Error> {
     let cli = cli().get_matches();
-    transpile::entry(&cli)
+    let res = transpile::entry(&cli);
+    if let Err(e) = &res {
+        eprintln!("{e}");
+    };
+    res
 }
 
 mod transpile {
@@ -15,13 +19,13 @@ mod transpile {
         let input = fs::read_to_string(command.get_one::<PathBuf>("ifile").expect("required"))?;
 
         match command.get_one::<Language>("lang").expect("default") {
-            Language::Latex => symono::parse(&input)
+            Language::Latex => symono::parse(&input.trim())
                 .map_err(Into::into)
                 .map(|sym| sym.latex()),
         }
         .map(|str| {
             if command.get_flag("wrap") {
-                print!("${}$", str);
+                print!("$${}$$", str);
             } else {
                 print!("{}", str);
             }

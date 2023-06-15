@@ -12,53 +12,7 @@ mod parse {
 
 /// Any single element that can be written on it's own
 mod single {
-    use std::iter;
-
-    use itertools::Itertools;
-
     use super::parse::*;
-
-    #[test]
-    fn alphabetic() {
-        let mut alphabet = 'a'..='z';
-        for ascii in alphabet.clone() {
-            for character in [ascii, ascii.to_ascii_uppercase()] {
-                for i in 1..=10 {
-                    let string = iter::repeat(character).take(i).join("");
-                    assert_eq!(mono(&string), string);
-                }
-            }
-        }
-        let string = alphabet.join("");
-        assert_eq!(mono(&string), string);
-    }
-
-    #[test]
-    fn numeric() {
-        let numerals = ["0", "1", "123", "100", "001", "999", "1234567890"];
-
-        for &pre in &numerals {
-            for &post in &numerals {
-                let check = |number| {
-                    assert_eq!(mono(number), number);
-                    assert_eq!(mono(&format!("-{}", number)), format!("-{}", number));
-                    assert_eq!(mono(&format!("+{}", number)), format!("+{}", number));
-                };
-                check(pre);
-                check(&format!("{}.{}", pre, post));
-            }
-            {
-                let number = pre;
-                assert_ne!(mono(&format!(".{}", number)), format!(".{}", number));
-                assert_ne!(mono(&format!("{}.", number)), format!("{}.", number));
-            }
-        }
-    }
-
-    #[test]
-    fn punctuation() {
-        assert_eq!(mono(","), ",", "comma");
-    }
 
     #[test]
     fn dots() {
@@ -75,6 +29,9 @@ mod single {
         assert_eq!(mono("*."), r"\cdot", "dot multiplication");
         assert_eq!(mono("*x"), r"\times", "cross multiplication");
         assert_eq!(mono("./."), r"\div", "division");
+        assert_eq!(mono("/"), r"/", "raw division");
+        assert_eq!(mono("1 / 2"), r"1 / 2", "raw division");
+        assert_eq!(mono("1 / 2 / 3 /"), r"1 / 2 / 3 /", "raw division");
     }
 
     #[test]
@@ -166,6 +123,21 @@ mod single {
     }
 }
 
+mod modifier {
+    use super::parse::*;
+    #[test]
+    fn superscript() {
+        assert_eq!(mono("^lol"), "^{lol}");
+        assert_eq!(mono("x^lol"), "x ^{lol}");
+    }
+
+    #[test]
+    fn subscript() {
+        assert_eq!(mono("_lol"), "_{lol}");
+        assert_eq!(mono("x_lol"), "x _{lol}");
+    }
+}
+
 mod collection {
     use super::parse::*;
 
@@ -218,6 +190,14 @@ mod command {
     use super::parse::*;
 
     #[test]
+    fn fraction() {
+        assert_eq!(mono("/1/2/"), r"\frac{1}{2}");
+        assert_eq!(mono("/1/2/3/"), r"\cfrac{1}{ \cfrac{2}{ 3 } }");
+        assert_eq!(mono("/1/((/2/3/))/"), r"\frac{1}{\frac{2}{3}}");
+        assert_eq!(mono("/1 + 1/2/"), r"\frac{1 + 1}{2}");
+    }
+
+    #[test]
     fn cases() {
         assert_eq!(
             mono(
@@ -230,10 +210,11 @@ mod command {
         )
     }
 
-	#[test]
-	fn sum() {
-		
-	}
+    #[test]
+    #[should_panic]
+    fn sum() {
+        assert_eq!(mono(""), r"\sum_{x = 1}^{10}");
+    }
 }
 
 mod font {
@@ -296,7 +277,7 @@ mod font {
             ("vtheta", r"\vartheta"),
             ("vphi", r"\varphi"),
         ];
-        for delim in ["g@", "@", ""] {
+        for delim in ["", "@", "g@", "G@"] {
             let g = |name| format!("{}{}", delim, name);
 
             for (sym, ltx) in &mapping {
@@ -307,11 +288,82 @@ mod font {
 
     #[test]
     fn number_class() {
-        for delim in ["|", "n@"] {
+        for delim in ["|", "n@", "N@"] {
             let n = |name| format!("{}{}", delim, name);
             for ascii in ('A')..=('Z') {
-                assert_eq!(mono(&n(ascii)), format!(r"\mathbb{{{}}}", ascii))
+                assert_eq!(mono(&n(ascii)), format!(r"\mathbb{{{}}}", ascii));
+                let ascii = ascii.to_ascii_lowercase();
+                if let Ok(res) = mono_r(&n(ascii)) {
+                    assert_ne!(res, format!(r"\mathbb{{{}}}", ascii), "{}", ascii);
+                }
             }
+        }
+    }
+
+    #[test]
+    fn curly() {
+        for delim in ["@", "c@", "C@"] {
+            let n = |name| format!("{}{}", delim, name);
+            for ascii in ('A')..=('Z') {
+                assert_eq!(mono(&n(ascii)), format!(r"\mathcal{{{}}}", ascii));
+                let ascii = ascii.to_ascii_lowercase();
+                if let Ok(res) = mono_r(&n(ascii)) {
+                    assert_ne!(res, format!(r"\mathcal{{{}}}", ascii), "{}", ascii);
+                }
+            }
+        }
+    }
+}
+
+mod literals {
+    use std::iter;
+
+    use itertools::Itertools;
+
+    use super::parse::*;
+
+    #[test]
+    fn alphabetic() {
+        let mut alphabet = 'a'..='z';
+        for ascii in alphabet.clone() {
+            for character in [ascii, ascii.to_ascii_uppercase()] {
+                for i in 1..=10 {
+                    let string = iter::repeat(character).take(i).join("");
+                    assert_eq!(mono(&string), string);
+                }
+            }
+        }
+        let string = alphabet.join("");
+        assert_eq!(mono(&string), string);
+    }
+
+    #[test]
+    fn numeric() {
+        let numerals = ["0", "1", "123", "100", "001", "999", "1234567890"];
+
+        for &pre in &numerals {
+            for &post in &numerals {
+                let check = |number| {
+                    assert_eq!(mono(number), number);
+                    assert_eq!(mono(&format!("-{}", number)), format!("-{}", number));
+                    assert_eq!(mono(&format!("+{}", number)), format!("+{}", number));
+                };
+                check(pre);
+                check(&format!("{}.{}", pre, post));
+            }
+            {
+                let number = pre;
+                assert_ne!(mono(&format!(".{}", number)), format!(".{}", number));
+                assert_ne!(mono(&format!("{}.", number)), format!("{}.", number));
+            }
+        }
+    }
+
+    #[test]
+    fn punctuation() {
+        let symbols = [",", "!", ":", "|", "?", "%", "&", "$", "£"];
+        for symbol in symbols {
+            assert_eq!(mono(symbol), symbol);
         }
     }
 }

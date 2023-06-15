@@ -13,6 +13,7 @@ mono = {
   | text
   | font
   | logic
+  | script
   | sets
   | arrow
   | numeric
@@ -33,6 +34,13 @@ alphabetic  = { ALPHABETIC+ }
 punctuation = {
     ","
   | "!"
+  | ":"
+  | "|"
+  | "?"
+  | "%"
+  | "&"
+  | "£"
+  | "$"
 }
 
 dot = {
@@ -52,6 +60,8 @@ operator = {
   | op_arith_mul_cross
   | op_arith_mul
   | op_arith_div
+  | op_arith_frac
+  | op_arith_div_raw
   | op_ne_equiv
   | op_ne_eq
   | op_ne_ge
@@ -74,10 +84,15 @@ op_arith_sub       = { "-" }
 op_arith_mul       = { "*" }
 op_arith_div       = {
     "./."
-  | "/" // Temporary til binary operator is fixed
+}
+op_arith_div_raw   = {
+    "/"
 }
 op_arith_mul_dot   = { "*." }
 op_arith_mul_cross = { "*x" }
+
+op_arith_frac      = { "/" ~ op_arith_frac_expr ~ (ws? ~ "/" ~ op_arith_frac_expr)+ ~ ws? ~ "/" }
+op_arith_frac_expr = { mono ~ (ws? ~ !("/") ~ mono)* }
 
 op_eq_eq    = { "=" }
 op_eq_gt    = { ">" }
@@ -171,6 +186,10 @@ set_subset       = { "{<" }
 set_subseteq     = { "{<=" }
 set_subsetne     = { "{<!=" | "{!<=" }
 
+script       = { script_super | script_sub }
+script_super = { "^" ~ ws? ~ mono }
+script_sub   = { "_" ~ ws? ~ mono }
+
 text      = { PUSH("#"*) ~ "\"" ~ text_expr ~ "\"" ~ POP }
 text_expr = { (!("\"" ~ PEEK) ~ ANY)* }
 
@@ -196,26 +215,28 @@ col_vec_transpose = { "T" }
 
 command = {
     cmd_cases
+  | cmd_sum
+  | cmd_prod
 }
 
 cmd_cases      =  { "{" ~ (ws? ~ cmd_cases_kw ~ cmd_cases_expr)+ ~ ws? ~ "}" }
 cmd_cases_kw   = _{ "case!" }
 cmd_cases_expr =  { (ws? ~ !("case!") ~ mono)* }
 
-// FIXME: Left-Recursion
-operator_bin = {
-    "/"
-}
+cmd_sum  = { "sum" }
+cmd_prod = { "prod" }
 
 font = {
     (font_prefix_greek? ~ font_delim ~ font_greek)
   | ((font_prefix_greek ~ font_delim)? ~ font_greek)
   | (("|" ~ font_numcls) | (font_prefix_numcls ~ font_delim ~ font_numcls))
+  | (font_prefix_curly? ~ font_delim ~ font_curly)
 }
 
 font_delim         = _{ "@" }
-font_prefix_greek  = _{ "g" }
-font_prefix_numcls = _{ "n" }
+font_prefix_greek  = _{ ^"g" }
+font_prefix_numcls = _{ ^"n" }
+font_prefix_curly  = _{ ^"c" }
 
 font_greek = {
     // Remove redundant, add single letters, order properly
@@ -248,6 +269,7 @@ font_greek = {
   | "vphi"
 }
 
-font_numcls = { 'A'..'Z' }
+font_numcls = { UPPERCASE+ }
+font_curly  = { UPPERCASE+ }
 
 ws = _{ WHITE_SPACE+ }

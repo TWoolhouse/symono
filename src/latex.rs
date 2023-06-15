@@ -10,38 +10,52 @@ pub fn mono(node: Node) -> String {
             let font = node.into_child();
             match font.as_rule() {
                 Rule::font_greek => font_greek(font),
-                Rule::font_numcls => font_number_class(font),
+                Rule::font_numcls => format!(r"\mathbb{{{}}}", font.as_str()),
+                Rule::font_curly => format!(r"\mathcal{{{}}}", font.as_str()),
                 rule => unreachable!("Expect only Fonts: {:?}", rule),
             }
         }
-        Rule::operator => match node.into_child().as_rule() {
-            // Arithmetic
-            Rule::op_arith_add => "+",
-            Rule::op_arith_sub => "-",
-            Rule::op_arith_mul => "*",
-            Rule::op_arith_div => r"\div",
-            Rule::op_arith_mul_dot => r"\cdot",
-            Rule::op_arith_mul_cross => r"\times",
-            // Equality
-            Rule::op_eq_eq => "=",
-            Rule::op_eq_gt => r"\gt",
-            Rule::op_eq_lt => r"\lt",
-            Rule::op_eq_ge => r"\ge",
-            Rule::op_eq_le => r"\le",
-            Rule::op_eq_equiv => r"\equiv",
-            Rule::op_eq_colon => r"\coloneqq",
-            Rule::op_eq_bar => r"\vDash",
-            // Inequality
-            Rule::op_ne_eq => r"\ne",
-            Rule::op_ne_gt => r"\ngtr",
-            Rule::op_ne_lt => r"\nltr",
-            Rule::op_ne_ge => r"\ngeq",
-            Rule::op_ne_le => r"\nleq",
-            Rule::op_ne_equiv => r"\not\equiv",
-            Rule::op_ne_bar => r"\nvDash",
-            rule => unreachable!("Expect only Operators: {:?}", rule),
+        Rule::script => {
+            let script = node.into_child();
+            let cmd = match script.as_rule() {
+                Rule::script_super => "^",
+                Rule::script_sub => "_",
+                rule => unreachable!("Expect only Scripts: {:?}", rule),
+            };
+            format!("{}{{{}}}", cmd, mono(script.into_child()))
         }
-        .to_owned(),
+        Rule::operator => {
+            let operator = node.into_child();
+            match operator.as_rule() {
+                // Arithmetic
+                Rule::op_arith_add => "+".into(),
+                Rule::op_arith_sub => "-".into(),
+                Rule::op_arith_mul => "*".into(),
+                Rule::op_arith_div_raw => "/".into(),
+                Rule::op_arith_div => r"\div".into(),
+                Rule::op_arith_mul_dot => r"\cdot".into(),
+                Rule::op_arith_mul_cross => r"\times".into(),
+                Rule::op_arith_frac => fraction(operator),
+                // Equality
+                Rule::op_eq_eq => "=".into(),
+                Rule::op_eq_gt => r"\gt".into(),
+                Rule::op_eq_lt => r"\lt".into(),
+                Rule::op_eq_ge => r"\ge".into(),
+                Rule::op_eq_le => r"\le".into(),
+                Rule::op_eq_equiv => r"\equiv".into(),
+                Rule::op_eq_colon => r"\coloneqq".into(),
+                Rule::op_eq_bar => r"\vDash".into(),
+                // Inequality
+                Rule::op_ne_eq => r"\ne".into(),
+                Rule::op_ne_gt => r"\ngtr".into(),
+                Rule::op_ne_lt => r"\nltr".into(),
+                Rule::op_ne_ge => r"\ngeq".into(),
+                Rule::op_ne_le => r"\nleq".into(),
+                Rule::op_ne_equiv => r"\not\equiv".into(),
+                Rule::op_ne_bar => r"\nvDash".into(),
+                rule => unreachable!("Expect only Operators: {:?}", rule),
+            }
+        }
         Rule::dot => match node.into_child().as_rule() {
             Rule::dot_centre => r"\cdot",
             Rule::dot_triple => r"\ldots",
@@ -147,6 +161,8 @@ pub fn mono(node: Node) -> String {
                             .join(r" \\ ")
                     )
                 }
+                Rule::cmd_sum => r"\sum".into(),
+                Rule::cmd_prod => r"\prod".into(),
                 rule => unreachable!("Expect only Commands: {:?}", rule),
             }
         }
@@ -179,9 +195,6 @@ fn font_greek(char: Node) -> String {
             format!(r"\{}", s)
         }
     }
-}
-fn font_number_class(char: Node) -> String {
-    format!(r"\mathbb{{{}}}", char.as_str())
 }
 fn set_complement(node: Node) -> String {
     format!(r"\overline{{{}}}", mono(node.into_child()))
@@ -217,4 +230,29 @@ fn collection_ext<'a>(collection: &'a [Node]) -> (&'a [Node<'a>], &'a Node<'a>) 
         .split_last()
         .expect("Collection requires Extension!");
     (col, ext)
+}
+
+fn fraction(node: Node) -> String {
+    let operands = node
+        .into_inner()
+        .map(|s| s.into_inner().latex())
+        .collect_vec();
+    if operands.len() == 2 {
+        format!(r"\frac{{{}}}{{{}}}", operands[0], operands[1])
+    } else {
+        fraction_interior(&operands)
+    }
+}
+
+fn fraction_interior(elements: &[String]) -> String {
+    debug_assert_ne!(elements.len(), 0);
+    if elements.len() == 1 {
+        elements[0].clone()
+    } else {
+        format!(
+            r"\cfrac{{{}}}{{ {} }}",
+            elements[0],
+            fraction_interior(&elements[1..])
+        )
+    }
 }
