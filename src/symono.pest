@@ -217,6 +217,7 @@ command = {
     cmd_cases
   | cmd_sum
   | cmd_prod
+  | cmd_sqrt
 }
 
 cmd_cases      =  { "{" ~ (ws? ~ cmd_cases_kw ~ cmd_cases_expr)+ ~ ws? ~ "}" }
@@ -225,6 +226,11 @@ cmd_cases_expr =  { (ws? ~ !("case!") ~ mono)* }
 
 cmd_sum  = { "sum" }
 cmd_prod = { "prod" }
+
+cmd_sqrt = {
+    "sqrt" ~ ws? ~ mono
+  | ("_/" | "_" ~ mono ~ "/") ~ ws? ~ mono
+}
 
 font = {
     (font_prefix_greek? ~ font_delim ~ font_greek)

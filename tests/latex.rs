@@ -198,6 +198,23 @@ mod command {
     }
 
     #[test]
+    fn sqrt() {
+        assert_eq!(mono("sqrt alpha"), r"\sqrt{\alpha}");
+        assert_eq!(mono("sqrt 1"), r"\sqrt{1}");
+        assert_eq!(mono("sqrt 1 + 1"), r"\sqrt{1} + 1");
+
+        assert_eq!(mono("_/ 1"), r"\sqrt{1}");
+        assert_eq!(mono("_/alpha"), r"\sqrt{\alpha}");
+        assert_eq!(mono("_//1/2/"), r"\sqrt{\frac{1}{2}}");
+        assert_eq!(
+            mono("_/((4 . /alpha + 3/2/))"),
+            r"\sqrt{4 \cdot \frac{\alpha + 3}{2}}"
+        );
+        assert_eq!(mono("_alpha/beta"), r"\sqrt[\alpha]{\beta}");
+        assert_eq!(mono("_alpha/ beta"), r"\sqrt[\alpha]{\beta}");
+    }
+
+    #[test]
     fn cases() {
         assert_eq!(
             mono(
@@ -211,9 +228,12 @@ mod command {
     }
 
     #[test]
-    #[should_panic]
     fn sum() {
-        assert_eq!(mono(""), r"\sum_{x = 1}^{10}");
+        assert_eq!(mono("sum_((x=1))^10"), r"\sum _{x = 1} ^{10}");
+    }
+    #[test]
+    fn prod() {
+        assert_eq!(mono("prod_((x=1))^10"), r"\prod _{x = 1} ^{10}");
     }
 }
 
@@ -377,5 +397,12 @@ mod collisions {
     fn arith_le_vs_arrow_left_thick() {
         assert_eq!(mono("<="), r"\Leftarrow");
         assert_eq!(mono("<="), r"\le");
+    }
+
+    #[test]
+    fn sqrt_fraction_subscript() {
+        assert_eq!(mono("_ /1/2/"), r"_{\frac{1}{2}}");
+        assert_eq!(mono("_/1/2/"), r"\sqrt{1} / 2 /");
+        assert_eq!(mono("_//1/2/"), r"\sqrt{\frac{1}{2}}");
     }
 }

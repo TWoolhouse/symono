@@ -163,6 +163,14 @@ pub fn mono(node: Node) -> String {
                 }
                 Rule::cmd_sum => r"\sum".into(),
                 Rule::cmd_prod => r"\prod".into(),
+                Rule::cmd_sqrt => {
+                    let operands = cmd.into_inner().map(|s| s.latex()).collect_vec();
+                    if operands.len() > 1 {
+                        format!(r"\sqrt[{}]{{{}}}", operands[0], operands[1])
+                    } else {
+                        format!(r"\sqrt{{{}}}", operands[0])
+                    }
+                }
                 rule => unreachable!("Expect only Commands: {:?}", rule),
             }
         }
