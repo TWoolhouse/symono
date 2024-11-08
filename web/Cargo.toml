@@ -1,0 +1,21 @@
+[package]
+name = "symono_wasm"
+version = "0.1.1"
+authors = ["Thomas Woolhouse <thomasrwoolhouse@gmail.com>"]
+edition = "2021"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+log = ["console_error_panic_hook"]
+
+[dependencies]
+symono = { version = "0.1.0", path = "./../", default-features = false }
+wasm-bindgen = "0.2.86"
+console_error_panic_hook = { version = "0.1.6", optional = true }
+wee_alloc = { version = "0.4.5", optional = true }
+
+[profile.release]
+opt-level = "s"
